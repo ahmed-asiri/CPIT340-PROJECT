@@ -1,0 +1,126 @@
+--------------------------------------------------------------------------------------
+
+// HOTEL // 
+
+--------------------------------------------------------------------------------------
+
+// ROOM //
+
+// update the hotel.total_rooms when a room inserted.
+
+create or replace trigger after_insert_room after insert on room for each row
+begin
+update hotel 
+set total_rooms = total_rooms + 1 
+where id = :new.hotel_id;
+end;
+
+// update the hotel.total_rooms when a room deleted and delete all the book depend on it.
+
+create or replace trigger before_delete_room before delete on room for each row
+declare
+booked int;
+begin
+select isThereFutureBook(:old.id) into booked from dual;
+if(booked = -1) then
+delete from book where room_id = :old.id;
+update hotel 
+set total_rooms = total_rooms - 1 
+where id = :old.hotel_id;
+else
+raise_application_error(-20007, 'the room cannot be deleted there is depending book on it, you need to modify manually and then try again');  
+end if;
+end;
+
+--------------------------------------------------------------------------------------
+
+// USERS //
+
+create or replace trigger before_delete_useradmin before delete on users for each row
+begin
+if(:old.type = 'Administrator') then
+raise_application_error(-20007, 'User Administrator Account cannot be deleted');
+end if;
+end;
+
+-------------------------------------------------------------------------------------
+
+// CUSTOMER //
+
+// before delete the customer delete all his booked rooms and then delete him.
+
+create or replace trigger before_delete_customer before delete on customer for each row
+begin
+delete from book where customer_id = :old.id;
+end;
+
+
+
+// after delete the customer delete his account from users table.
+
+create or replace trigger after_delete_customer after delete on customer for each row
+begin
+delete from users where id = :old.id and type = 'Customer';
+end;
+
+  
+
+-------------------------------------------------------------------------------------
+
+// EMPLOYEE //
+
+-------------------------------------------------------------------------------------
+
+// ADMINISTRATOR //
+
+create or replace trigger before_delete_admin before delete on administrator for each row
+begin
+raise_application_error(-20007, 'Administrator Account cannot be deleted, you can only modify it');
+end;
+
+-------------------------------------------------------------------------------------
+
+// BOOK //
+
+// before inserting book check if the room available at that date and generate randomId and 
+
+
+// version 2
+create or replace trigger before_insert_book before insert on book for each row
+declare
+available int;
+tempBookId int;
+exist int;
+room_price float;
+begin 
+select isAvailable(:new.room_id, :new.hotel_id, :new.check_in, :new.check_out) into available from dual;
+if (available = 1) then
+select generateBookId() into tempBookId from dual;
+select isExist(tempBookId) into exist from dual;
+if (exist = -1) then
+:new.id := tempBookId;
+select price into room_price from room where id = :new.room_id and hotel_id = :new.hotel_id;
+:new.total_days := :new.check_out - :new.check_in;
+:new.total_price := :new.total_days * room_price;
+else
+Raise_application_error(-20007, 'There is a problem happend when generating Book id, so please try again');
+end if;
+else
+Raise_application_error(-20007, 'The room it is not available in the date dimension that you insert or the room not exist');
+end if;
+end;
+
+
+
+
+// book cannot be deleted before 2 days DISABLED
+
+create or replace trigger before_delete_book before delete on book for each row
+declare
+days_before int;
+begin
+days_before:= to_date(:old.check_in, 'DD-MON-YYYY') - to_date(sysdate, 'DD-MON-YYYY');
+if (days_before < 2) then
+raise_application_error(-20007, 'you cannot cancel book before less than two days from the check-in date');
+end if;
+end;

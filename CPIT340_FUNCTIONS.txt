@@ -1,0 +1,137 @@
+// GENERAL //
+
+// generate random number for booking.
+
+create or replace function generateBookId return int
+as
+randomNumber int;
+begin
+select floor(dbms_random.value() * 80000000) into randomNumber from dual;
+return randomNumber;
+end;
+
+--------------------------------------------------------------------------------------
+
+// HOTEL // 
+
+
+// get number of booked rooms in date dimensions
+
+create or replace function getBookedRooms(hotelId in int, inDate in date, outDate in date) return int
+as
+counter int := 0;
+begin
+select count(room_id) into counter from (select room_id, hotel_id from book where 
+check_in between to_date(inDate,'DD-MON-YY') and to_date(outDate, 'DD-MON-YY') 
+or
+check_out between to_date(inDate,'DD-MON-YY') and to_date(outDate, 'DD-MON-YY') ) where hotel_id = hotelId;
+return counter;
+end; 
+--------------------------------------------------------------------------------------
+
+// ROOM //
+
+// to check if the room is available for booking or not, 1 = available, -1 = not available.
+
+create or replace function isAvailable(roomId in int, hotelId in int, inDate in date, outDate in date) return int
+as
+availability int := -1;
+cursor RoomRow
+is
+select id from room where id not in 
+(select room_id from book where 
+(check_in between to_date(inDate,'DD-MON-YYYY') and to_date(outDate, 'DD-MON-YYYY') 
+or
+check_out between to_date(inDate,'DD-MON-YYYY') and to_date(outDate, 'DD-MON-YYYY')))
+and hotel_id = hotelId and id = roomId;
+VarRoomId RoomRow %RowType;
+begin
+open RoomRow;
+loop
+fetch RoomRow into VarRoomId;
+exit when(RoomRow%notfound or availability=1);
+if (VarRoomId.id = roomId) then
+availability := 1;
+end if;
+end loop;
+close RoomRow;
+return availability;
+end;
+
+
+// return 1 if there is already futured books on the room, else return -1
+
+create or replace function isThereFutureBook(roomId in int) return int
+as
+booked int := -1;
+tempDate date;
+cursor books
+is
+select check_in from book where room_id = roomId; 
+begin
+open books;
+loop 
+fetch books into tempDate;
+exit when(books%notfound);
+if (tempDate > sysdate) then
+booked := 1;
+end if;
+end loop;
+close books;
+return booked;
+end;
+
+
+--------------------------------------------------------------------------------------
+
+// USERS //
+
+-------------------------------------------------------------------------------------
+
+// CUSTOMER //
+
+
+-------------------------------------------------------------------------------------
+
+// EMPLOYEE //
+
+-------------------------------------------------------------------------------------
+
+// ADMINISTRATOR //
+
+-------------------------------------------------------------------------------------
+
+// BOOK //
+
+
+create or replace function isExist(bookId int) return int
+as
+exist int:= 1;
+cursor book_id
+is
+select id from book where id = bookId;
+temp int;
+begin
+open book_id;
+fetch book_id into temp;
+if(book_id%notfound) then
+exist := -1;
+end if;
+return exist;
+end;
+
+
+
+create or replace function getBookDate(bookId int) return timestamp
+as
+exist int;
+bookTimestamp timestamp;
+begin
+select isExist(bookId) into exist from dual;
+if (exist = 1) then
+select scn_to_timestamp(ora_rowscn) into bookTimestamp from customer where id = bookId;
+else
+dbms_output.put_line('You have inserted wrong Book id, try again!');
+end if;
+return bookTimestamp;
+end;

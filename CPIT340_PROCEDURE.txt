@@ -1,0 +1,13 @@
+create or replace procedure discount (hotelId in int, roomType in varchar2(20), discounte in float)
+is
+cursor curs_rooms is select * from room where type = roomType and hotel_id = hotelId;
+roomId curs_rooms.id%type;
+begin
+open curs_rooms;
+loop
+fetch curs_rooms.id into roomId;
+exit when (curs_rooms%notfound);
+update room set price = price - (price * discounte) where id = roomId;
+end loop;
+close curs_rooms;
+end;
