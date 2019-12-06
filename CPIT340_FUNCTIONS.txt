@@ -27,6 +27,23 @@ or
 check_out between to_date(inDate,'DD-MON-YY') and to_date(outDate, 'DD-MON-YY') ) where hotel_id = hotelId;
 return counter;
 end; 
+
+
+// function to display all the room and give availability column to show if it's available or not.
+
+create or replace function display_available_rooms(hotelId in int, inDate in date, outDate in date) return sys_refcursor
+as 
+result_curs sys_refcursor;
+begin
+open result_curs for 
+select hotel_id, id as room_id, type, price, case isAvailable(id, hotelId, inDate, outDate)
+when 1 then 'Available'
+when -1 then 'Not Available'
+end as availability
+from room where hotel_id = hotelId;
+return result_curs;
+end;
+
 --------------------------------------------------------------------------------------
 
 // ROOM //

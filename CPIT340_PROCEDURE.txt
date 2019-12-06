@@ -1,13 +1,45 @@
-create or replace procedure discount (hotelId in int, roomType in varchar2(20), discounte in float)
+// perform discount on rooms, by specifing the hotel id and the percentage of the discount.
+
+create or replace procedure discount(hotelId in int, percentage in float)
 is
-cursor curs_rooms is select * from room where type = roomType and hotel_id = hotelId;
-roomId curs_rooms.id%type;
 begin
-open curs_rooms;
-loop
-fetch curs_rooms.id into roomId;
-exit when (curs_rooms%notfound);
-update room set price = price - (price * discounte) where id = roomId;
-end loop;
-close curs_rooms;
+update room 
+set 
+price = price - (price * percentage) 
+where 
+hotel_id = hotelId;
+if (sql%found) then
+dbms_output.put_line('The number of discounted rooms is: ' || sql%rowcount);
+else
+dbms_output.put_line('There is no rooms to perform discount');
+end if;
+end;
+
+
+
+
+
+// procedure to extend the book check-out, but before extending we need to check availability
+
+create or replace procedure extendBook(bookId in int, newOutDate in date)
+is 
+availability int;
+oldOutDate date;
+roomId int;
+hotelId int;
+exist int;
+begin
+select isExist(bookId) into exist from dual;
+if (exist = 1) then
+select check_out, room_id, hotel_id into oldOutDate, roomId, hotelId from book where id = bookId;
+select isAvailable(roomId, hotelId, oldOutDate, newOutDate) into availability from dual;
+if (availability = 1) then
+update book set check_out = newOutDate where id = bookId;
+dbms_output.put_line('The check-out date has been extended.');
+else
+dbms_output.put_line('The room is Not Available for extending.');
+end if;
+else 
+dbms_output.put_line('You have entered wrong book ID, try again!');
+end if;
 end;
