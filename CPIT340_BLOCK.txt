@@ -1,0 +1,22 @@
+// block to get the hotel id with the biggest outcome.
+
+declare
+biggestOutcome book.total_price%type:= 0;
+biggestHotelId hotel.id%type:= 0.0;
+hotelName hotel.name%type;
+hotelCity hotel.city%type;
+cursor cursHotelsOutcome
+is
+select hotel_id, sum(total_price) as total_outcome from book group by hotel_id;
+hotelsOutcome cursHotelsOutcome%rowtype;
+begin
+open cursHotelsOutcome;
+fetch cursHotelsOutcome into hotelsOutcome;
+if (hotelsOutcome.total_outcome > biggestOutcome) then
+biggestOutcome:= hotelsOutcome.total_outcome;
+biggestHotelId:= hotelsOutcome.hotel_id;
+select name, city into hotelName, hotelCity from hotel where id = biggestHotelId;
+dbms_output.put_line('Hotel ID: ' || biggestHotelId || ', Hotel Name: ' || hotelName || ', Hotel City: ' || hotelCity || ', Total outcome: ' || biggestOutcome);
+end if;
+close cursHotelsOutcome;
+end;
