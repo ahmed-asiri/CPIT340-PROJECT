@@ -85,7 +85,6 @@ end;
 // before inserting book check if the room available at that date and generate randomId and 
 
 
-// version 2
 create or replace trigger before_insert_book before insert on book for each row
 declare
 available int;

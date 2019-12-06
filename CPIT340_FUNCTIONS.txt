@@ -31,7 +31,7 @@ end;
 
 // function to display all the room and give availability column to show if it's available or not.
 
-create or replace function display_available_rooms(hotelId in int, inDate in date, outDate in date) return sys_refcursor
+create or replace function displayRoomsAvailability(hotelId in int, inDate in date, outDate in date) return sys_refcursor
 as 
 result_curs sys_refcursor;
 begin
@@ -49,31 +49,32 @@ end;
 // ROOM //
 
 // to check if the room is available for booking or not, 1 = available, -1 = not available.
+//correct one HERE
 
 create or replace function isAvailable(roomId in int, hotelId in int, inDate in date, outDate in date) return int
 as
-availability int := -1;
+availability int := 1;
 cursor RoomRow
 is
-select id from room where id not in 
-(select room_id from book where 
-(check_in between to_date(inDate,'DD-MON-YYYY') and to_date(outDate, 'DD-MON-YYYY') 
+select room_id, hotel_id from book where 
+check_in between inDate and outDate 
 or
-check_out between to_date(inDate,'DD-MON-YYYY') and to_date(outDate, 'DD-MON-YYYY')))
-and hotel_id = hotelId and id = roomId;
-VarRoomId RoomRow %RowType;
+check_out between inDate and outDate;
+VarRoom RoomRow%RowType;
 begin
 open RoomRow;
 loop
-fetch RoomRow into VarRoomId;
-exit when(RoomRow%notfound or availability=1);
-if (VarRoomId.id = roomId) then
-availability := 1;
+fetch RoomRow into VarRoom;
+exit when(RoomRow%notfound);
+if (VarRoom.ROOM_ID = roomId and VarRoom.HOTEL_ID = hotelId) then
+availability := -1;
 end if;
 end loop;
 close RoomRow;
 return availability;
 end;
+
+
 
 
 // return 1 if there is already futured books on the room, else return -1

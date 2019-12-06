@@ -32,7 +32,7 @@ begin
 select isExist(bookId) into exist from dual;
 if (exist = 1) then
 select check_out, room_id, hotel_id into oldOutDate, roomId, hotelId from book where id = bookId;
-select isAvailable(roomId, hotelId, oldOutDate, newOutDate) into availability from dual;
+select isAvailable(roomId, hotelId, oldOutDate+1, newOutDate) into availability from dual;
 if (availability = 1) then
 update book set check_out = newOutDate where id = bookId;
 dbms_output.put_line('The check-out date has been extended.');
