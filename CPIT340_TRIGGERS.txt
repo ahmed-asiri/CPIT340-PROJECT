@@ -111,7 +111,20 @@ end;
 
 
 
+// update book after extending the days
 
+create or replace trigger before_update_book before update on book for each row
+declare
+roomPrice float;
+begin
+select price into roomPrice from room where id = :old.room_id and hotel_id = :old.hotel_id;
+:new.total_days := :old.check_in - :new.check_out; 
+:new.total_price := roomPrice * :new.total_days;
+end;
+
+
+
+sele
 // book cannot be deleted before 2 days DISABLED
 
 create or replace trigger before_delete_book before delete on book for each row
